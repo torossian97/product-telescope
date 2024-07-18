@@ -15,7 +15,7 @@ const Search = () => {
   const [selectedOptions, setSelectedOptions] = useState({
     product: "",
     resource: "",
-    subresource: "",
+    specifier: "",
   });
   const [filteredOptions, setFilteredOptions] = useState([]);
   const [showOptions, setShowOptions] = useState(false);
@@ -29,46 +29,53 @@ const Search = () => {
 
   useEffect(() => {
     setAnchorEl(inputRef.current);
-    setShowOptions(false);
+    setShowOptions(false); // Ensure it starts closed
   }, []);
 
   const updateOptions = () => {
     const { product, resource } = selectedOptions;
     let newFilteredOptions = [];
 
-    if (!product || inputValue.startsWith(product.toLowerCase()) === false) {
+    const inputWords = inputValue.trim().split(" ");
+
+    // Show product options if no product is selected
+    if (!product) {
       newFilteredOptions = products
         .filter((p) =>
-          p.name.toLowerCase().startsWith(inputValue.toLowerCase())
+          p.name.toLowerCase().includes(inputWords[0]?.toLowerCase())
         )
         .map((p) => p.name);
-    } else if (product && !resource) {
+    }
+    // Show resource options if a product is selected but no resource is selected
+    else if (product && !resource) {
       if (resources[product]) {
-        const productLength = product.length;
-        const remainingInput = inputValue
-          .slice(productLength)
-          .trim()
-          .toLowerCase();
+        const resourceSearchValue = inputWords[1]?.toLowerCase() || "";
         newFilteredOptions = resources[product]
-          .filter((r) => r.name.toLowerCase().startsWith(remainingInput))
+          .filter((r) => r.name.toLowerCase().includes(resourceSearchValue))
           .map((r) => r.name);
+
+        // Show all resource options if the input value ends with a space
+        if (inputValue.endsWith(" ")) {
+          newFilteredOptions = resources[product].map((r) => r.name);
+        }
       }
-    } else if (product && resource) {
+    }
+    // Show specifier options if both product and resource are selected
+    else if (product && resource) {
       const resourceData = resources[product].find((r) => r.name === resource);
-      if (resourceData) {
-        const productLength = product.length;
-        const resourceLength = resource.length;
-        const remainingInput = inputValue
-          .slice(productLength + resourceLength)
-          .trim()
-          .toLowerCase();
-        newFilteredOptions = resources[product]
-          .filter(
-            (r) =>
-              r.type === resourceData.type &&
-              r.name.toLowerCase().startsWith(remainingInput)
+      if (resourceData && resourceData.specifiers) {
+        const specifierSearchValue =
+          inputWords.slice(2).join(" ").toLowerCase() || "";
+        newFilteredOptions = resourceData.specifiers
+          .filter((s) =>
+            s.identifier.toLowerCase().includes(specifierSearchValue)
           )
-          .map((r) => r.name);
+          .map((s) => s.identifier);
+
+        // Show all specifier options if the input value ends with a space
+        if (inputValue.endsWith(" ")) {
+          newFilteredOptions = resourceData.specifiers.map((s) => s.identifier);
+        }
       }
     }
 
@@ -81,57 +88,86 @@ const Search = () => {
     setInputValue(newInputValue);
     setAnchorEl(event.currentTarget);
 
-    const { product, resource } = selectedOptions;
+    const inputWords = newInputValue.trim().split(" ");
 
-    // Determine the new selected product, resource, or subresource based on input value
-    if (!product) {
-      const matchedProduct = products.find((p) =>
-        newInputValue.toLowerCase().startsWith(p.name.toLowerCase())
+    // Matching product
+    if (
+      inputWords.length === 1 ||
+      (inputWords.length > 1 && inputWords[1] === "")
+    ) {
+      const matchedProduct = products.find(
+        (p) => inputWords[0].toLowerCase() === p.name.toLowerCase()
       );
       if (matchedProduct) {
         setSelectedOptions({
           product: matchedProduct.name,
           resource: "",
-          subresource: "",
+          specifier: "",
         });
+      } else {
+        setSelectedOptions({ product: "", resource: "", specifier: "" });
       }
-    } else if (product && !resource) {
-      const productLength = product.length;
-      const remainingInput = newInputValue
-        .slice(productLength)
-        .trim()
-        .toLowerCase();
-      const matchedResource = resources[product]?.find((r) =>
-        remainingInput.startsWith(r.name.toLowerCase())
+      if (newInputValue.endsWith(" ")) {
+        updateOptions();
+        setShowOptions(true);
+      }
+      // Matching resource
+    } else if (
+      inputWords.length === 2 ||
+      (inputWords.length > 2 && inputWords[2] === "")
+    ) {
+      const matchedResource = resources[selectedOptions.product]?.find(
+        (r) => inputWords[1].toLowerCase() === r.name.toLowerCase()
       );
       if (matchedResource) {
         setSelectedOptions((prev) => ({
           ...prev,
           resource: matchedResource.name,
-          subresource: "",
+          specifier: "",
         }));
-      }
-    } else if (product && resource) {
-      const productLength = product.length;
-      const resourceLength = resource.length;
-      const remainingInput = newInputValue
-        .slice(productLength + resourceLength)
-        .trim()
-        .toLowerCase();
-      const resourceData = resources[product].find((r) => r.name === resource);
-      const matchedSubresource = resourceData?.subresources?.find((sr) =>
-        remainingInput.startsWith(sr.name.toLowerCase())
-      );
-      if (matchedSubresource) {
+      } else {
         setSelectedOptions((prev) => ({
           ...prev,
-          subresource: matchedSubresource.name,
+          resource: "",
+          specifier: "",
+        }));
+      }
+      if (newInputValue.endsWith(" ")) {
+        updateOptions();
+        setShowOptions(true);
+      }
+      // Matching specifier
+    } else if (inputWords.length > 2) {
+      const resourceData = resources[selectedOptions.product]?.find(
+        (r) => r.name === selectedOptions.resource
+      );
+      const matchedSpecifier = resourceData?.specifiers?.find(
+        (s) =>
+          inputWords.slice(2).join(" ").toLowerCase() ===
+          s.identifier.toLowerCase()
+      );
+      if (matchedSpecifier) {
+        setSelectedOptions((prev) => ({
+          ...prev,
+          specifier: matchedSpecifier.identifier,
         }));
         setShowOptions(false);
-        //navigateToLink(product, resource, matchedSubresource.name);
+        navigateToLink(
+          selectedOptions.product,
+          selectedOptions.resource,
+          matchedSpecifier.identifier
+        );
+      } else {
+        setSelectedOptions((prev) => ({ ...prev, specifier: "" }));
+      }
+      if (newInputValue.endsWith(" ")) {
+        updateOptions();
+        setShowOptions(true);
       }
     }
+  };
 
+  const handleFocus = () => {
     updateOptions();
     setShowOptions(true);
   };
@@ -140,20 +176,21 @@ const Search = () => {
     const { product, resource } = selectedOptions;
 
     if (!product) {
-      setSelectedOptions({ product: option, resource: "", subresource: "" });
+      setSelectedOptions({ product: option, resource: "", specifier: "" });
       setInputValue(option + " ");
     } else if (product && !resource) {
       setSelectedOptions({ ...selectedOptions, resource: option });
       setInputValue(product + " " + option + " ");
     } else if (product && resource) {
-      setSelectedOptions({ ...selectedOptions, subresource: option });
+      setSelectedOptions({ ...selectedOptions, specifier: option });
       setInputValue(product + " " + resource + " " + option + " ");
-      setShowOptions(false); // Hide options after selecting the subresource
-      // Navigate to the final link
+      setShowOptions(false); // Hide options after selecting the specifier
       navigateToLink(product, resource, option);
     }
 
     inputRef.current.focus();
+    updateOptions(); // Ensure options are updated after clicking
+    console.log(selectedOptions);
   };
 
   const handleKeyDown = (event) => {
@@ -176,24 +213,21 @@ const Search = () => {
     setShowOptions(false);
   };
 
-  const handleFocus = () => {
-    updateOptions();
-    setShowOptions(true);
-  };
-
-  const navigateToLink = (product, resource, subresource) => {
+  const navigateToLink = (product, resource, specifier) => {
     const resourceData = resources[product].find((r) => r.name === resource);
-    const productMeta = products.find((p) => p.name === product).metadata;
-    const subresourceData = resourceData?.subresources?.find(
-      (sr) => sr.name === subresource
+    const specifierData = resourceData?.specifiers?.find(
+      (s) => s.identifier === specifier
     );
 
-    if (subresourceData && subresourceData.metadata?.link) {
-      window.location.href = subresourceData.metadata.link;
+    if (specifierData && specifierData.metadata?.link) {
+      window.location.href = specifierData.metadata.link;
     } else if (resourceData && resourceData.metadata?.link) {
       window.location.href = resourceData.metadata.link;
-    } else if (productMeta && productMeta.link) {
-      window.location.href = productMeta.link;
+    } else {
+      const productMeta = products.find((p) => p.name === product).metadata;
+      if (productMeta && productMeta.link) {
+        window.location.href = productMeta.link;
+      }
     }
   };
 
@@ -211,7 +245,7 @@ const Search = () => {
       <ClickAwayListener onClickAway={handleClickAway}>
         <div>
           <TextField
-            label="Start with a product..."
+            label="Search"
             variant="outlined"
             value={inputValue}
             onChange={handleInputChange}
@@ -219,7 +253,7 @@ const Search = () => {
             onKeyDown={handleKeyDown}
             inputRef={inputRef}
             sx={{
-              width: 500,
+              width: 300,
               input: { color: "#fff" },
               label: { color: "#fff" },
               "& .MuiOutlinedInput-root": {
@@ -238,7 +272,7 @@ const Search = () => {
           <Popper
             open={showOptions}
             anchorEl={anchorEl}
-            style={{ zIndex: 1, width: 500 }}
+            style={{ zIndex: 1, width: 300 }}
           >
             <Paper>
               <List>

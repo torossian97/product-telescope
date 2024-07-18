@@ -2,18 +2,32 @@ export const schedulerResources = [
   {
     name: "roadmap",
     type: "docs",
-    icon: "path/to/roadmap-icon.png",
-    metadata: {
-      link: "/scheduler/v3/docs/roadmap",
-    },
+    specifiers: [
+      {
+        identifier: "v3",
+        metadata: {
+          link: "/scheduler/v3/roadmap",
+        },
+      },
+      {
+        identifier: "lost bookings",
+        metadata: {
+          link: "/scheduler/bookings",
+        },
+      },
+    ],
   },
   {
     name: "bookings",
-    type: "docs",
-    icon: "path/to/bookings-icon.png",
-    metadata: {
-      link: "/scheduler/v3/docs/bookings",
-    },
+    type: "feature",
+    specifiers: [
+      {
+        identifier: "v2",
+        metadata: {
+          link: "/scheduler/v2/bookings",
+        },
+      },
+    ],
   },
   // Add more resources for scheduler
 ];

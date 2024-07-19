@@ -7,11 +7,14 @@ import ListItemText from "@mui/material/ListItemText";
 import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
 import ClickAwayListener from "@mui/material/ClickAwayListener";
+import InputAdornment from "@mui/material/InputAdornment";
+import { KeyboardReturn } from "@mui/icons-material";
 import { products } from "../data/products";
 import { resources } from "../data/resources";
 
 const Search = () => {
   const [inputValue, setInputValue] = useState("");
+  const [specifierConfirmed, setSpecifierConfirmed] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState({
     product: "",
     resource: "",
@@ -40,7 +43,7 @@ const Search = () => {
 
     // Show product options if no product is selected
     if (!product) {
-      newFilteredOptions = products
+      newFilteredOptions = Object.values(products)
         .filter((p) =>
           p.name.toLowerCase().includes(inputWords[0]?.toLowerCase())
         )
@@ -64,8 +67,11 @@ const Search = () => {
     else if (product && resource) {
       const resourceData = resources[product].find((r) => r.name === resource);
       if (resourceData && resourceData.specifiers) {
-        const specifierSearchValue =
-          inputWords.slice(2).join(" ").toLowerCase() || "";
+        const specifierSearchValue = inputValue
+          .substring(inputValue.indexOf(resource) + resource.length)
+          .trim()
+          .toLowerCase();
+        console.log(specifierSearchValue);
         newFilteredOptions = resourceData.specifiers
           .filter((s) =>
             s.identifier.toLowerCase().includes(specifierSearchValue)
@@ -73,7 +79,7 @@ const Search = () => {
           .map((s) => s.identifier);
 
         // Show all specifier options if the input value ends with a space
-        if (inputValue.endsWith(" ")) {
+        if (inputValue.endsWith(" ") && specifierSearchValue === "") {
           newFilteredOptions = resourceData.specifiers.map((s) => s.identifier);
         }
       }
@@ -95,7 +101,7 @@ const Search = () => {
       inputWords.length === 1 ||
       (inputWords.length > 1 && inputWords[1] === "")
     ) {
-      const matchedProduct = products.find(
+      const matchedProduct = Object.values(products).find(
         (p) => inputWords[0].toLowerCase() === p.name.toLowerCase()
       );
       if (matchedProduct) {
@@ -181,16 +187,21 @@ const Search = () => {
     } else if (product && !resource) {
       setSelectedOptions({ ...selectedOptions, resource: option });
       setInputValue(product + " " + option + " ");
+
+      const resourceData = resources[product].find((r) => r.name === option);
+      if (resourceData && resourceData && resourceData.link) {
+        setSpecifierConfirmed(true);
+      }
     } else if (product && resource) {
       setSelectedOptions({ ...selectedOptions, specifier: option });
       setInputValue(product + " " + resource + " " + option + " ");
-      setShowOptions(false); // Hide options after selecting the specifier
-      navigateToLink(product, resource, option);
+      setShowOptions(false);
+
+      setSpecifierConfirmed(true);
     }
 
     inputRef.current.focus();
     updateOptions(); // Ensure options are updated after clicking
-    console.log(selectedOptions);
   };
 
   const handleKeyDown = (event) => {
@@ -204,7 +215,17 @@ const Search = () => {
           (prevIndex - 1 + filteredOptions.length) % filteredOptions.length
       );
     } else if (event.key === "Enter") {
-      handleOptionClick(filteredOptions[highlightedIndex]);
+      const option = filteredOptions[highlightedIndex];
+      if (specifierConfirmed) {
+        navigateToLink(
+          selectedOptions.product,
+          selectedOptions.resource,
+          option
+        );
+      } else {
+        handleOptionClick(option);
+        //setSpecifierConfirmed(true);
+      }
       setHighlightedIndex(0);
     }
   };
@@ -224,7 +245,7 @@ const Search = () => {
     } else if (resourceData && resourceData.metadata?.link) {
       window.location.href = resourceData.metadata.link;
     } else {
-      const productMeta = products.find((p) => p.name === product).metadata;
+      const productMeta = products[product]?.metadata;
       if (productMeta && productMeta.link) {
         window.location.href = productMeta.link;
       }
@@ -240,6 +261,7 @@ const Search = () => {
         height: "100vh",
         backgroundColor: "#242424",
         flexDirection: "column",
+        position: "relative",
       }}
     >
       <ClickAwayListener onClickAway={handleClickAway}>
@@ -253,7 +275,7 @@ const Search = () => {
             onKeyDown={handleKeyDown}
             inputRef={inputRef}
             sx={{
-              width: 300,
+              width: 500,
               input: { color: "#fff" },
               label: { color: "#fff" },
               "& .MuiOutlinedInput-root": {
@@ -268,20 +290,44 @@ const Search = () => {
                 },
               },
             }}
+            InputProps={{
+              endAdornment: specifierConfirmed && (
+                <InputAdornment position="end">
+                  <KeyboardReturn sx={{ color: "lightgrey" }} />
+                </InputAdornment>
+              ),
+            }}
           />
+          {specifierConfirmed && (
+            <Box
+              sx={{
+                position: "absolute",
+                right: 10,
+                top: 55,
+                color: "lightgrey",
+              }}
+            >
+              Press Enter to navigate
+            </Box>
+          )}
           <Popper
             open={showOptions}
             anchorEl={anchorEl}
-            style={{ zIndex: 1, width: 300 }}
+            style={{ zIndex: 1, width: 500 }}
           >
             <Paper>
               <List>
                 {filteredOptions.map((option, index) => (
                   <ListItem
-                    button
+                    button={!option.level}
                     key={index}
-                    selected={index === highlightedIndex}
-                    onClick={() => handleOptionClick(option)}
+                    selected={index === highlightedIndex && !option.level}
+                    onClick={() => !option.level && handleOptionClick(option)}
+                    sx={{
+                      color: option.level ? "grey" : "inherit",
+                      pointerEvents: option.level ? "none" : "auto",
+                      paddingLeft: option.level * 16,
+                    }}
                   >
                     <ListItemText primary={option} />
                   </ListItem>

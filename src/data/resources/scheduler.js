@@ -10,7 +10,13 @@ export const schedulerResources = [
         },
       },
       {
-        identifier: "lost bookings",
+        identifier: "bb bookings",
+        metadata: {
+          link: "/scheduler/bookings",
+        },
+      },
+      {
+        identifier: "bookings",
         metadata: {
           link: "/scheduler/bookings",
         },
@@ -20,6 +26,7 @@ export const schedulerResources = [
   {
     name: "bookings",
     type: "feature",
+    link: "/bookings",
     specifiers: [
       {
         identifier: "v2",

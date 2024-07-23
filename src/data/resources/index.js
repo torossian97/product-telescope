@@ -3,6 +3,6 @@ import { extractAIResources } from "./extractai";
 
 export const resources = {
   scheduler: schedulerResources,
-  extractAI: extractAIResources,
+  extractai: extractAIResources,
   // Add more products and their resources
 };

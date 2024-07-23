@@ -27,13 +27,100 @@ const Search = () => {
   const inputRef = useRef(null);
 
   useEffect(() => {
+    updateInput();
+  }, [inputValue]);
+
+  useEffect(() => {
     updateOptions();
-  }, [selectedOptions, inputValue]);
+  }, [selectedOptions]);
 
   useEffect(() => {
     setAnchorEl(inputRef.current);
     setShowOptions(false); // Ensure it starts closed
   }, []);
+
+  const updateInput = () => {
+    // analyze current input
+    const inputWords = inputValue.trim().split(" ");
+
+    // 1 word + space
+    if (inputWords.length === 1 && inputValue.endsWith(" ")) {
+      const matchedProduct = Object.values(products).find(
+        (p) => inputWords[0].toLowerCase() === p.name.toLowerCase()
+      );
+      if (matchedProduct) {
+        setSelectedOptions({
+          product: matchedProduct.name,
+          resource: "",
+          specifier: "",
+        });
+      } else {
+        setSelectedOptions({ product: "", resource: "", specifier: "" });
+      }
+    }
+    // empty
+    else if (inputValue == "") {
+      // prevents unnecessary renders if no change is needed
+      if (selectedOptions.product) {
+        setSelectedOptions({ product: "", resource: "", specifier: "" });
+      }
+    }
+    // 1 word
+    else if (inputWords.length === 1) {
+      setSelectedOptions({ product: "", resource: "", specifier: "" });
+    }
+
+    // 2 words + space
+    if (inputWords.length === 2 && inputValue.endsWith(" ")) {
+      const matchedResource = resources[selectedOptions.product]?.find(
+        (r) => inputWords[1].toLowerCase() === r.name.toLowerCase()
+      );
+      if (matchedResource) {
+        setSelectedOptions((prev) => ({
+          ...prev,
+          resource: matchedResource.name,
+          specifier: "",
+        }));
+      } else {
+        setSelectedOptions((prev) => ({
+          ...prev,
+          resource: "",
+          specifier: "",
+        }));
+      }
+    }
+    // 2 words
+    else if (inputWords.length === 2) {
+      setSelectedOptions((prev) => ({
+        ...prev,
+        resource: "",
+        specifier: "",
+      }));
+    } else if (inputWords.length > 2) {
+      const resourceData = resources[selectedOptions.product]?.find(
+        (r) => r.name === selectedOptions.resource
+      );
+      const matchedSpecifier = resourceData?.specifiers?.find(
+        (s) =>
+          inputWords.slice(2).join(" ").toLowerCase() ===
+          s.identifier.toLowerCase()
+      );
+      if (matchedSpecifier) {
+        setSelectedOptions((prev) => ({
+          ...prev,
+          specifier: matchedSpecifier.identifier,
+        }));
+        setShowOptions(false);
+        navigateToLink(
+          selectedOptions.product,
+          selectedOptions.resource,
+          matchedSpecifier.identifier
+        );
+      } else {
+        setSelectedOptions((prev) => ({ ...prev, specifier: "" }));
+      }
+    }
+  };
 
   const updateOptions = () => {
     const { product, resource } = selectedOptions;
@@ -92,85 +179,7 @@ const Search = () => {
   const handleInputChange = (event) => {
     const newInputValue = event.target.value;
     setInputValue(newInputValue);
-    setAnchorEl(event.currentTarget);
-
-    const inputWords = newInputValue.trim().split(" ");
-
-    // Matching product
-    if (
-      inputWords.length === 1 ||
-      (inputWords.length > 1 && inputWords[1] === "")
-    ) {
-      const matchedProduct = Object.values(products).find(
-        (p) => inputWords[0].toLowerCase() === p.name.toLowerCase()
-      );
-      if (matchedProduct) {
-        setSelectedOptions({
-          product: matchedProduct.name,
-          resource: "",
-          specifier: "",
-        });
-      } else {
-        setSelectedOptions({ product: "", resource: "", specifier: "" });
-      }
-      if (newInputValue.endsWith(" ")) {
-        updateOptions();
-        setShowOptions(true);
-      }
-      // Matching resource
-    } else if (
-      inputWords.length === 2 ||
-      (inputWords.length > 2 && inputWords[2] === "")
-    ) {
-      const matchedResource = resources[selectedOptions.product]?.find(
-        (r) => inputWords[1].toLowerCase() === r.name.toLowerCase()
-      );
-      if (matchedResource) {
-        setSelectedOptions((prev) => ({
-          ...prev,
-          resource: matchedResource.name,
-          specifier: "",
-        }));
-      } else {
-        setSelectedOptions((prev) => ({
-          ...prev,
-          resource: "",
-          specifier: "",
-        }));
-      }
-      if (newInputValue.endsWith(" ")) {
-        updateOptions();
-        setShowOptions(true);
-      }
-      // Matching specifier
-    } else if (inputWords.length > 2) {
-      const resourceData = resources[selectedOptions.product]?.find(
-        (r) => r.name === selectedOptions.resource
-      );
-      const matchedSpecifier = resourceData?.specifiers?.find(
-        (s) =>
-          inputWords.slice(2).join(" ").toLowerCase() ===
-          s.identifier.toLowerCase()
-      );
-      if (matchedSpecifier) {
-        setSelectedOptions((prev) => ({
-          ...prev,
-          specifier: matchedSpecifier.identifier,
-        }));
-        setShowOptions(false);
-        navigateToLink(
-          selectedOptions.product,
-          selectedOptions.resource,
-          matchedSpecifier.identifier
-        );
-      } else {
-        setSelectedOptions((prev) => ({ ...prev, specifier: "" }));
-      }
-      if (newInputValue.endsWith(" ")) {
-        updateOptions();
-        setShowOptions(true);
-      }
-    }
+    //setAnchorEl(event.currentTarget);
   };
 
   const handleFocus = () => {
@@ -182,18 +191,14 @@ const Search = () => {
     const { product, resource } = selectedOptions;
 
     if (!product) {
-      setSelectedOptions({ product: option, resource: "", specifier: "" });
       setInputValue(option + " ");
     } else if (product && !resource) {
-      setSelectedOptions({ ...selectedOptions, resource: option });
       setInputValue(product + " " + option + " ");
-
       const resourceData = resources[product].find((r) => r.name === option);
       if (resourceData && resourceData && resourceData.link) {
         setSpecifierConfirmed(true);
       }
     } else if (product && resource) {
-      setSelectedOptions({ ...selectedOptions, specifier: option });
       setInputValue(product + " " + resource + " " + option + " ");
       setShowOptions(false);
 
@@ -317,21 +322,45 @@ const Search = () => {
           >
             <Paper>
               <List>
-                {filteredOptions.map((option, index) => (
-                  <ListItem
-                    button={!option.level}
-                    key={index}
-                    selected={index === highlightedIndex && !option.level}
-                    onClick={() => !option.level && handleOptionClick(option)}
-                    sx={{
-                      color: option.level ? "grey" : "inherit",
-                      pointerEvents: option.level ? "none" : "auto",
-                      paddingLeft: option.level * 16,
-                    }}
-                  >
-                    <ListItemText primary={option} />
-                  </ListItem>
-                ))}
+                {filteredOptions.map((option, index) => {
+                  // Determine if this option is a product or resource and get the corresponding icon
+                  let icon = "";
+                  if (products[option]) {
+                    icon = products[option].icon;
+                  } else {
+                    Object.keys(resources).forEach((product) => {
+                      const resource = resources[product].find(
+                        (r) => r.name === option
+                      );
+                      if (resource) {
+                        icon = resource.icon;
+                      }
+                    });
+                  }
+
+                  return (
+                    <ListItem
+                      button={!option.level}
+                      key={index}
+                      selected={index === highlightedIndex && !option.level}
+                      onClick={() => !option.level && handleOptionClick(option)}
+                      sx={{
+                        color: option.level ? "grey" : "inherit",
+                        pointerEvents: option.level ? "none" : "auto",
+                        paddingLeft: option.level * 16,
+                      }}
+                    >
+                      {icon && (
+                        <img
+                          src={icon}
+                          alt={`${option} icon`}
+                          style={{ marginRight: 8, width: "16px" }}
+                        />
+                      )}
+                      <ListItemText primary={option} />
+                    </ListItem>
+                  );
+                })}
               </List>
             </Paper>
           </Popper>

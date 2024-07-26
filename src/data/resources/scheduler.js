@@ -1,8 +1,18 @@
+import DocsIcon from "../../assets/docs-icon.png";
+import JiraIcon from "../../assets/jira-icon.svg";
+import CompetitorsIcon from "../../assets/competitors-icon.svg";
+import RoadmapIcon from "../../assets/roadmap-icon.png";
+import SlackIcon from "../../assets/slack-icon.png";
+import PeopleIcon from "../../assets/people-icon.png";
+import BugIcon from "../../assets/bug-icon.png";
+import FigmaIcon from "../../assets/figma-icon.png";
+import { People } from "@mui/icons-material";
+
 export const schedulerResources = [
   {
     name: "roadmap",
     type: "roadmap",
-    icon: "src/assets/roadmap-icon.png",
+    icon: RoadmapIcon,
     specifiers: [
       {
         identifier: "Interactive",
@@ -21,7 +31,7 @@ export const schedulerResources = [
   {
     name: "bugs",
     type: "bugs",
-    icon: "src/assets/bug-icon.png",
+    icon: BugIcon,
     specifiers: [
       {
         identifier: "report",
@@ -34,7 +44,7 @@ export const schedulerResources = [
   {
     name: "docs",
     type: "docs",
-    icon: "src/assets/docs-icon.png",
+    icon: DocsIcon,
     specifiers: [
       {
         identifier: "overview",
@@ -65,7 +75,7 @@ export const schedulerResources = [
   {
     name: "people",
     type: "workspace",
-    icon: "src/assets/people-icon.png",
+    icon: PeopleIcon,
     specifiers: [
       {
         identifier: "product manager",
@@ -90,7 +100,7 @@ export const schedulerResources = [
   {
     name: "designs",
     type: "custom",
-    icon: "src/assets/figma-icon.png",
+    icon: FigmaIcon,
     specifiers: [
       {
         identifier: "scheduling component",
@@ -109,7 +119,7 @@ export const schedulerResources = [
   {
     name: "slack",
     type: "custom",
-    icon: "src/assets/slack-icon.png",
+    icon: SlackIcon,
     specifiers: [
       {
         identifier: "sq-scheduler",
@@ -134,7 +144,7 @@ export const schedulerResources = [
   {
     name: "jira",
     type: "custom",
-    icon: "src/assets/jira-icon.svg",
+    icon: JiraIcon,
     specifiers: [
       {
         identifier: "producthub",
@@ -153,7 +163,7 @@ export const schedulerResources = [
   {
     name: "competitors",
     type: "custom",
-    icon: "src/assets/competitors-icon.svg",
+    icon: CompetitorsIcon,
     specifiers: [
       {
         identifier: "cronofy",
@@ -166,7 +176,7 @@ export const schedulerResources = [
   {
     name: "PRDs",
     type: "custom",
-    icon: "src/assets/jira-icon.svg",
+    icon: JiraIcon,
     link: "/scheduler/PRDS",
     specifiers: [
       {
